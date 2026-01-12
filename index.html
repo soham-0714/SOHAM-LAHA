@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Tracker - Soham Laha</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        .dark { background-color: #0f172a; color: #f8fafc; }
+        .dark .card { background-color: #1e293b; border-color: #334155; }
+        .dark input, .dark select { background-color: #334155; color: white; border-color: #475569; }
+        .transition-all { transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans transition-all" id="appBody">
+
+    <header class="bg-white border-b p-4 sticky top-0 z-10 card shadow-sm">
+        <div class="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    SL
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold" id="currentUserName">Soham Laha</h1>
+                    <p class="text-xs text-gray-500 uppercase tracking-widest">Premium Dashboard</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <button onclick="toggleDarkMode()" class="p-2 border rounded-lg hover:bg-gray-100">🌓</button>
+                <button onclick="showUserModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Switch User</button>
+                <button onclick="resetApp()" class="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm border border-red-200">Reset</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-4 md:p-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="card bg-white p-5 rounded-2xl border shadow-sm border-l-4 border-blue-500">
+                <p class="text-sm text-gray-500 mb-1">Current Balance</p>
+                <h2 class="text-2xl font-black text-blue-600" id="stat-balance">₹0</h2>
+            </div>
+            <div class="card bg-white p-5 rounded-2xl border shadow-sm border-l-4 border-green-500">
+                <p class="text-sm text-gray-500 mb-1">Total Income</p>
+                <h2 class="text-2xl font-bold text-green-600" id="stat-income">₹0</h2>
+            </div>
+            <div class="card bg-white p-5 rounded-2xl border shadow-sm border-l-4 border-red-500">
+                <p class="text-sm text-gray-500 mb-1">Total Expenses</p>
+                <h2 class="text-2xl font-bold text-red-600" id="stat-expense">₹0</h2>
+            </div>
+            <div class="card bg-white p-5 rounded-2xl border shadow-sm border-l-4 border-amber-500">
+                <p class="text-sm text-gray-500 mb-1">Lend/Borrow Net</p>
+                <h2 class="text-2xl font-bold text-amber-600" id="stat-debt">₹0</h2>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 space-y-6">
+                <div class="card bg-white p-6 rounded-2xl border shadow-sm">
+                    <h3 class="font-bold text-lg mb-4">Add Transaction</h3>
+                    <form id="txForm" onsubmit="handleEntry(event)" class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold uppercase text-gray-400">Transaction Type</label>
+                            <select id="type" class="w-full mt-1 p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="income">Income (+)</option>
+                                <option value="expense">Expense (-)</option>
+                                <option value="borrow">Borrowed (From Someone)</option>
+                                <option value="lend">Lent (To Someone)</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-xs font-bold uppercase text-gray-400">Amount (₹)</label>
+                                <input type="number" id="amount" required class="w-full mt-1 p-2.5 border rounded-xl outline-none">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold uppercase text-gray-400">Category</label>
+                                <select id="category" class="w-full mt-1 p-2.5 border rounded-xl outline-none">
+                                    <optgroup label="Income">
+                                        <option value="salary">Salary</option>
+                                        <option value="business">Business</option>
+                                        <option value="freelance">Freelance</option>
+                                        <option value="gift">Gift</option>
+                                    </optgroup>
+                                    <optgroup label="Expense">
+                                        <option value="food">Food</option>
+                                        <option value="travel">Travel</option>
+                                        <option value="shopping">Shopping</option>
+                                        <option value="rent">Rent</option>
+                                        <option value="education">Education</option>
+                                        <option value="mobile">Mobile</option>
+                                    </optgroup>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold uppercase text-gray-400">Person Name / Details</label>
+                            <input type="text" id="note" placeholder="e.g. Rahul or Office" required class="w-full mt-1 p-2.5 border rounded-xl outline-none">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-md">Record Entry</button>
+                    </form>
+                </div>
+
+                <div class="card bg-white p-6 rounded-2xl border shadow-sm">
+                    <h3 class="font-bold text-lg mb-4">Report Center</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="exportData('pdf')" class="p-3 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-black">Export PDF</button>
+                        <button onclick="exportData('csv')" class="p-3 bg-gray-100 border rounded-xl text-sm font-medium hover:bg-gray-200">Export Excel</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="card bg-white p-4 rounded-2xl border shadow-sm">
+                        <h4 class="text-sm font-bold mb-2">Income vs Expense</h4>
+                        <canvas id="barChart" height="200"></canvas>
+                    </div>
+                    <div class="card bg-white p-4 rounded-2xl border shadow-sm">
+                        <h4 class="text-sm font-bold mb-2">Expense Categories</h4>
+                        <canvas id="pieChart" height="200"></canvas>
+                    </div>
+                </div>
+
+                <div class="card bg-white rounded-2xl border shadow-sm overflow-hidden">
+                    <div class="p-4 border-b flex justify-between items-center bg-gray-50 dark:bg-slate-800">
+                        <h3 class="font-bold">Recent Ledger History</h3>
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold">Live Data</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="bg-gray-50 dark:bg-slate-800 text-gray-500">
+                                    <th class="p-4">Date</th>
+                                    <th class="p-4">Details</th>
+                                    <th class="p-4">Category</th>
+                                    <th class="p-4">Amount</th>
+                                    <th class="p-4">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ledger-rows">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="userModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-sm w-full">
+            <h2 class="text-xl font-bold mb-4">Manage Users</h2>
+            <div id="userList" class="space-y-2 mb-4"></div>
+            <input type="text" id="newUserName" placeholder="Add new user name" class="w-full p-2 border rounded-lg mb-2">
+            <button onclick="addNewUser()" class="w-full bg-green-600 text-white p-2 rounded-lg font-bold">Add & Switch</button>
+            <button onclick="hideUserModal()" class="w-full mt-2 text-gray-500">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = localStorage.getItem('activeUser') || 'Soham Laha';
+        let allUserData = JSON.parse(localStorage.getItem('expenseAppData')) || { 'Soham Laha': [] };
+        
+        let charts = {};
+
+        function init() {
+            document.getElementById('currentUserName').innerText = currentUser;
+            refreshUI();
+        }
+
+        function handleEntry(e) {
+            e.preventDefault();
+            const entry = {
+                id: Date.now(),
+                type: document.getElementById('type').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                category: document.getElementById('category').value,
+                note: document.getElementById('note').value,
+                date: new Date().toLocaleDateString('en-IN')
+            };
+
+            if(!allUserData[currentUser]) allUserData[currentUser] = [];
+            allUserData[currentUser].unshift(entry);
+            save();
+            refreshUI();
+            e.target.reset();
+        }
+
+        function refreshUI() {
+            const history = allUserData[currentUser] || [];
+            const rows = document.getElementById('ledger-rows');
+            rows.innerHTML = '';
+
+            let totals = { inc: 0, exp: 0, borrow: 0, lend: 0, catExp: {} };
+
+            history.forEach(item => {
+                if(item.type === 'income') totals.inc += item.amount;
+                if(item.type === 'expense') {
+                    totals.exp += item.amount;
+                    totals.catExp[item.category] = (totals.catExp[item.category] || 0) + item.amount;
+                }
+                if(item.type === 'borrow') totals.borrow += item.amount;
+                if(item.type === 'lend') totals.lend += item.amount;
+
+                const colorClass = (item.type === 'income' || item.type === 'borrow') ? 'text-green-600' : 'text-red-600';
+                const prefix = (item.type === 'income' || item.type === 'borrow') ? '+' : '-';
+
+                rows.innerHTML += `
+                    <tr class="border-b dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700">
+                        <td class="p-4 text-xs text-gray-500">${item.date}</td>
+                        <td class="p-4 font-bold">${item.note}</td>
+                        <td class="p-4"><span class="px-2 py-1 bg-gray-100 dark:bg-slate-600 rounded text-[10px] uppercase font-bold">${item.category}</span></td>
+                        <td class="p-4 font-black ${colorClass}">${prefix} ₹${item.amount}</td>
+                        <td class="p-4"><button onclick="deleteTx(${item.id})" class="text-red-400 hover:text-red-600">Delete</button></td>
+                    </tr>
+                `;
+            });
+
+            // Balance Calculation based on prompt formula: Income – Expense – Borrowed + Lent 
+            // Note: In standard cash flow, borrowing adds cash. But following user logic:
+            const balance = totals.inc - totals.exp - totals.borrow + totals.lend;
+
+            document.getElementById('stat-balance').innerText = `₹${balance}`;
+            document.getElementById('stat-income').innerText = `₹${totals.inc}`;
+            document.getElementById('stat-expense').innerText = `₹${totals.exp}`;
+            document.getElementById('stat-debt').innerText = `₹${totals.lend - totals.borrow}`;
+
+            updateCharts(totals);
+        }
+
+        function updateCharts(totals) {
+            if(charts.bar) charts.bar.destroy();
+            if(charts.pie) charts.pie.destroy();
+
+            const isDark = document.body.classList.contains('dark');
+            const textColor = isDark ? '#fff' : '#666';
+
+            charts.bar = new Chart(document.getElementById('barChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Income', 'Expense'],
+                    datasets: [{
+                        label: 'INR',
+                        data: [totals.inc, totals.exp],
+                        backgroundColor: ['#10b981', '#ef4444']
+                    }]
+                },
+                options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { color: textColor } } } }
+            });
+
+            charts.pie = new Chart(document.getElementById('pieChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(totals.catExp),
+                    datasets: [{
+                        data: Object.values(totals.catExp),
+                        backgroundColor: ['#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#10b981', '#64748b']
+                    }]
+                },
+                options: { plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
+            });
+        }
+
+        function deleteTx(id) {
+            allUserData[currentUser] = allUserData[currentUser].filter(t => t.id !== id);
+            save();
+            refreshUI();
+        }
+
+        function save() {
+            localStorage.setItem('expenseAppData', JSON.stringify(allUserData));
+            localStorage.setItem('activeUser', currentUser);
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark');
+            refreshUI();
+        }
+
+        function exportData(format) {
+            if(format === 'pdf') {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.text(`Expense Report: ${currentUser}`, 14, 15);
+                const tableData = allUserData[currentUser].map(t => [t.date, t.note, t.category, t.type, `INR ${t.amount}`]);
+                doc.autoTable({ head: [['Date', 'Details', 'Category', 'Type', 'Amount']], body: tableData, startY: 20 });
+                doc.save(`${currentUser}_Finance_Report.pdf`);
+            } else {
+                let csv = "Date,Details,Category,Type,Amount\n";
+                allUserData[currentUser].forEach(t => {
+                    csv += `${t.date},${t.note},${t.category},${t.type},${t.amount}\n`;
+                });
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.setAttribute('href', url);
+                a.setAttribute('download', 'Report.csv');
+                a.click();
+            }
+        }
+
+        // Multi-user logic
+        function showUserModal() {
+            const list = document.getElementById('userList');
+            list.innerHTML = '';
+            Object.keys(allUserData).forEach(user => {
+                list.innerHTML += `<button onclick="switchUser('${user}')" class="w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded border mb-1 ${user === currentUser ? 'border-blue-500 font-bold' : ''}">${user}</button>`;
+            });
+            document.getElementById('userModal').classList.remove('hidden');
+        }
+
+        function hideUserModal() { document.getElementById('userModal').classList.add('hidden'); }
+
+        function addNewUser() {
+            const name = document.getElementById('newUserName').value;
+            if(name) {
+                if(!allUserData[name]) allUserData[name] = [];
+                switchUser(name);
+                document.getElementById('newUserName').value = '';
+            }
+        }
+
+        function switchUser(name) {
+            currentUser = name;
+            save();
+            init();
+            hideUserModal();
+        }
+
+        function resetApp() {
+            if(confirm("Erase all data for this user?")) {
+                allUserData[currentUser] = [];
+                save();
+                refreshUI();
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
